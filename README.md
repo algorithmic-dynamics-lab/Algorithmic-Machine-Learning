@@ -2,7 +2,7 @@
 
 This repository contains code relating to the following *in-silico* experiments:
 
- * Algorithmic Classification (Mathematica Notebooks, Wolfram Languaje):
+ * Algorithmic Classification (Mathematica Notebooks and Wolfram Languaje for .txt versions):
     * ECAClassification.nb: Algorithmic and NN classification of Elemental Cellular Automatons according to its evolution.
     * ECAInitialization.nb: Algorithmic and NN classification of Elemental Cellular Automatons according to its initial state.
     * KNConnectivity.nb: Algorithmic and NN classification of NK networks according to k.
@@ -20,7 +20,8 @@ This repository contains code relating to the following *in-silico* experiments:
       * **Data and Extra files:**
       * BDM.py : A Python implementation of BDM by Zachary Robertson.
       * D5.CSV, K-10.json, K-12m.json, K-3.json, K-4x4.json, K-5.json, K-6.json, K-9.json: Files for BDM.py
-  * ConditionalBDM (Mathematica Notebook, Wolfram Languaje):
+      
+  * ConditionalBDM (Mathematica Notebook and Wolfram Languaje for .txt versions):
     * StringConditionalExperimentsV6.nb: Numerical exploration of the properties of *coarse* conditional BDM.
       * **Data files:** 
       * D5.m: Data base for string BDM.

@@ -1,0 +1,417 @@
+Classifying Cellular Automatons.
+In this experiment, we will classify cellular automatons according to its underlying rules.
+The Set
+We will use the complete automaton range.
+In[1]:= automat[n_] := RandomSample[Range[255],n]
+In[2]:= SeedRandom[227019];
+lAutomat = automat[10];
+In[4]:= lAutomat = DeleteDuplicates@Append[lAutomat,110]
+Out[4]= {167,11,129,215,88,32,237,156,173,236,110}
+In[5]:= size = 32
+Out[5]= 32
+We will use 25 samples per class.
+In[6]:= nSamples = 25
+Out[6]= 25
+In[7]:= SeedRandom[2602019]
+
+TrainingSample = 
+Catenate@Table[
+Table[
+With[{ini = RandomInteger[1,size]},
+CellularAutomaton[
+lAutomat[[i]], ini, size-1
+]-> lAutomat[[i]]
+]
+,{i,Length[lAutomat]}
+]
+,{j,nSamples}];
+
+ValidationSample = 
+Catenate@Table[
+Table[
+With[{ini = RandomInteger[1,size]},
+CellularAutomaton[
+lAutomat[[i]], ini, size-1
+]-> lAutomat[[i]]
+]
+,{i,Length[lAutomat]}
+]
+,{j,nSamples}];
+
+TestSample  =
+Catenate@Table[
+Table[
+With[{ini = RandomInteger[1,size]},
+CellularAutomaton[
+lAutomat[[i]], ini, size-1
+]-> lAutomat[[i]]
+]
+,{i,Length[lAutomat]}
+]
+,{j,5*nSamples}]; 
+A sample is:
+In[13]:= (ArrayPlot[#[[1]]]-> #[[2]])&@TrainingSample[[1]]
+Out[13]= ->167
+Accuracy of Naive Neural Networks.
+nn: Neural Network that takes in a flattened vector of 1s and 0s. (all timesteps in one go)
+In[73]:= nn =  NetChain[{FlattenLayer[], 
+LinearLayer[],
+SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",lAutomat}],"Input"-> {size,size}];
+In[74]:= net = NetTrain[nn,TrainingSample, All,ValidationSet-> ValidationSample,
+MaxTrainingRounds->500,TargetDevice->{"GPU",2}]
+Out[74]= NetTrainResultsObject[Total training time:	16 s
+Total rounds:	500
+Total batches:	2500
+Batch size:	64
+Method:	ADAM
+Final round loss:	0.0113
+Final validation loss:	4.19
+Final round error:	0%
+Final validation error:	60.4%
+
+	Loss evolution plot:	Error evolution plot:
+	
+
+]
+In[75]:= net["ErrorRateEvolutionPlot"]
+Out[75]= 	validation
+	training
+
+
+In[76]:= ClassifierMeasurements[net["TrainedNet"],TestSample,"Accuracy"]
+Out[76]= 0.390545
+In[77]:= ClassifierMeasurements[net["TrainedNet"], TrainingSample,"Accuracy"]
+Out[77]= 0.996364
+So, even with this simple model, we have a textbook example of overfitting. The linear layer has enough variance to reach a 100% accuracy on the training set, but only manages a 0.28% accuracy on the test set.
+In[78]:= nn2 =  NetChain[{FlattenLayer[], 
+LinearLayer[size*size],
+LinearLayer[],
+SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",lAutomat}],"Input"-> {size,size}];
+
+In[79]:= net2 = NetTrain[nn2,TrainingSample, All,ValidationSet-> ValidationSample,
+MaxTrainingRounds->500,
+TargetDevice->{"GPU",2}]
+Out[79]= NetTrainResultsObject[Total training time:	23 s
+Total rounds:	500
+Total batches:	2500
+Batch size:	64
+Method:	ADAM
+Final round loss:	0.000349
+Final validation loss:	5.95
+Final round error:	0%
+Final validation error:	61.1%
+
+	Loss evolution plot:	Error evolution plot:
+	
+
+]
+In[80]:= ClassifierMeasurements[net2["TrainedNet"],TestSample,"Accuracy"]
+Out[80]= 0.395636
+In[81]:= ClassifierMeasurements[net2["TrainedNet"], TrainingSample,"Accuracy"]
+Out[81]= 0.996364
+We can see that Naive Neural Networks have low Accuracy on the problem.
+Final Neural Network.
+In[82]:= nn3 =  NetChain[{FlattenLayer[], 
+LinearLayer[size*size],
+LinearLayer[size*size],
+LinearLayer[],
+SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",lAutomat}],"Input"-> {size,size}];
+In[83]:= net3 = NetTrain[nn3,TrainingSample, All,ValidationSet-> ValidationSample,
+MaxTrainingRounds->500,
+TargetDevice->{"GPU",2}]
+Out[83]= NetTrainResultsObject[Total training time:	31 s
+Total rounds:	500
+Total batches:	2500
+Batch size:	64
+Method:	ADAM
+Final round loss:	0.0000999
+Final validation loss:	6.7
+Final round error:	0%
+Final validation error:	59.6%
+
+	Loss evolution plot:	Error evolution plot:
+	
+
+]
+In[84]:= ClassifierMeasurements[net3["TrainedNet"], TestSample,"Accuracy"]
+Out[84]= 0.396364
+In[85]:= ClassifierMeasurements[net3["TrainedNet"], TrainingSample,"Accuracy"]
+Out[85]= 1.
+In[87]:= net3["ErrorRateEvolutionPlot"]
+Out[87]= 	validation
+	training
+
+
+Another one.
+In[88]:= nn4 =  NetChain[{FlattenLayer[], 
+LinearLayer[size*size],
+LinearLayer[size*size],
+LinearLayer[size*size],
+LinearLayer[],
+SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",lAutomat}],"Input"-> {size,size}];
+In[89]:= net4 = NetTrain[nn4,TrainingSample, All,ValidationSet-> ValidationSample,
+MaxTrainingRounds->500,
+TargetDevice->{"GPU",2}]
+Out[89]= NetTrainResultsObject[Total training time:	41 s
+Total rounds:	500
+Total batches:	2500
+Batch size:	64
+Method:	ADAM
+Final round loss:	0.0000441
+Final validation loss:	7.78
+Final round error:	0%
+Final validation error:	58.5%
+
+	Loss evolution plot:	Error evolution plot:
+	
+
+]
+In[90]:= ClassifierMeasurements[net4["TrainedNet"], TestSample,"Accuracy"]
+Out[90]= 0.397818
+The Performance of a Convolutional Deep Network.
+The following Neural Network so far has shown excellent performance on this task. 
+In[11]:= nn =  NetChain[{ ConvolutionLayer[16,{3,2}],Ramp,PoolingLayer[{size-2,size-3}],FlattenLayer[], LinearLayer[Length@lAutomat],SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",lAutomat}],"Input"-> {1,size,size}];
+We need to add one channel for this network to work.
+In[12]:= TrainingSample2 = Map[{#[[1]]}->#[[2]]&,TrainingSample];
+In[13]:= ValidationSample2=  Map[{#[[1]]}->#[[2]]&,ValidationSample];
+In[14]:= TestSample2 =  Map[{#[[1]]}->#[[2]]&,TestSample];
+In[15]:= SeedRandom[26022019]
+net = NetTrain[nn,TrainingSample2,ValidationSet->ValidationSample2, TargetDevice->{"GPU",2}]
+Out[16]= NetChain[Input port:	3-tensor ( size: 1*32*32 )
+Output port:	class
+Number of layers:	6
+
+]
+In[17]:= ClassifierMeasurements[net, TestSample2, "Accuracy"]
+Out[17]= 0.989091
+The accuracy is very good.
+Now, given the requirements for the classifier that the input be of size 1xn...xn, we will define a second classifier to make the next code compatible.
+In[18]:= compNet[x_] := net[{x}]
+Breaking the Network With Small Pixel Attacks. 
+Given a classifier and a sample, the following function will return a list of successful attacks. 
+In[19]:= flipPixelL[ls_,idx_]:=
+ReplacePart[ls,idx-> If[
+ls[[idx]]==0,1,0]
+]
+In[20]:= flipPixelS[sam_, idx_]:=With[
+{
+ogDim=Dimensions[sam[[1]]],
+flat = Flatten[sam[[1]]]
+},
+With[
+{
+flipped =flipPixelL[flat,idx]},
+ ArrayReshape[flipped,ogDim]-> sam[[2]]
+]
+]
+In[21]:= (* flips all the pixels given in the list 'lIdx' *)
+nflipPixelS[sam_, lIdx_]:= Fold[flipPixelS,sam,lIdx]
+In[22]:= (* The function *)
+pixelAttack[class_,sample_]:=Select[
+Range[
+Fold[#1*#2&,1,#]&@Dimensions[sample[[1]]]
+],
+class[flipPixelS[sample, #][[1]]]!=sample[[2]]&
+]
+Example of execution:
+In[23]:= x = TestSample[[1]];
+In[24]:= pixelAttack[compNet,x]
+Out[24]= {42,73,93,124,155,217,248,279,341,372,403,465,496,527,589,620,651,713,744,775,837,868}
+In[25]:= (* function that can do 'n' pixel attacks *)
+In[26]:= npixelAttack[class_,sample_,nm_]:= With[
+{cand = Subsets[
+Range[Fold[#1*#2&,1,#]&@Dimensions[sample[[1]]]]
+,{nm}]
+},
+Parallelize@Select[
+cand,class[nflipPixelS[sample, #][[1]]]!=sample[[2]]&
+]
+]
+In[27]:= (* npixelAttack[compNet,x,2] *)
+Going through all the list is too computational expensive.
+Expected Number of 1-Pixel attacks to break each Sample.
+Let's compute the expected number of 1-pixel attacks needed to break the prediction of a sample. 
+First, a sample of the test set, otherwise this is very expensive.
+In[28]:= SeedRandom[02012019]
+vSet = RandomSample[TestSample,1000];
+Now, the experiment.
+In[30]:= (* attacks = ParallelTable[
+pixelAttack[compNet,vSet[[i]]]
+,{i,Length[vSet]}
+] *)
+In[31]:= expected = N@(Total@ParallelTable[
+Length@pixelAttack[compNet,vSet[[i]]]
+,{i,Length[vSet]}]/Length[vSet])
+Out[31]= 140.64
+140 per sample is a significant number.
+The Same Attack on our Algorithmic Classifier.
+Let' s try the same attack on the classifier.Since we have no reason to believe that the same pixels will work, we will try to find another list.
+The BDM function:
+In[32]:= SetDirectory[NotebookDirectory[]]
+Out[32]= F:\Dropbox\PostDoc\MathematicaNB\Classification\Breaking
+In[33]:= reducedD2=<<"squares2Dsize1to4.m";
+In[34]:= Table[With[{sq=reducedD2[[nS]]},HashSquares[sq[[1]]]=sq[[2]]],{nS,Length@reducedD2}];
+In[35]:= Clear[reducedD2];
+In[36]:= BDM[array_,dim_Integer:4]:=If[TrueQ[Min[Dimensions[array]]<dim],BDM[array,Min[Dimensions[array]]],First[Block[{part=Partition[array,{dim,dim}]},Total[{Log[2,#[[2]]]+#[[1]]}&/@({HashSquares[#[[1]]],#[[2]]}&/@Tally[Flatten[part,1]])]]]]
+Conditional BDM.
+Functions to parse through shared members.
+In[37]:= Clear[NotIn]
+In[38]:= NotIn[List[],rep_]:= List[]
+In[39]:= NotIn[x_,rep_]:=If[MemberQ[rep,x[[1]]],NotIn[x[[2;;]],rep],Prepend[NotIn[x[[2;;]],rep],x[[1]]]]
+In[40]:= Shrd[List[],rep_]:=List[]
+In[41]:= Shrd[x_,rep_]:= If[MemberQ[rep,x[[1]]],Prepend[Shrd[x[[2;;]],rep],x[[1]]],Shrd[x[[2;;]],rep]]
+Conditional Squared BDM Function.
+In[42]:= Clear[BDMC]
+In[43]:= BDMC[array_,array2_,dim_Integer, offset_:dim_Integer]:=
+If[TrueQ[Min[Dimensions[array]]<dim],
+BDMC[array,array2,Min[Dimensions[array]]],
+
+Block[{
+part=Catenate[Partition[array,{dim,dim},{offset,offset}]],
+part2= Catenate[Partition[array2, {dim,dim},{offset,offset}]]
+},
+  Total[(HashSquares[#[[1]]]+Log[2,#[[2]]])&/@Tally[NotIn[part, part2]]] +
+	Total[Log[2,#[[2]]]&/@Tally[Shrd[part, part2]]]
+]
+]
+Training the Classifier.
+In[44]:= lossM[c_,x_]:=BDMC[x[[1]],c,4,1]^2
+In[45]:= costM[c_,set_]:= N@Total[
+lossM[c,#]&/@set
+]
+In[46]:= getClass[n_, set_]:= getClass2[n,set,Length[set],List[]]
+
+getClass2[n_,set_,i_, acc_]:=If[
+i>0,
+getClass3[n, set, i, acc],
+Return[acc]
+]
+
+getClass3[n_,set_,i_, acc_]:=If[
+n==set[[i]][[2]],
+getClass2[n,set,i-1, Append[acc,set[[i]]]],
+getClass2[n,set,i-1, acc]
+]
+In[49]:= (* needed for my program to work *)
+$RecursionLimit=Infinity;
+$IterationLimit=Infinity;
+CloseKernels[];
+ParallelEvaluate[$RecursionLimit=Infinity;$IterationLimit=Infinity,LaunchKernels[8]];
+In[53]:= Table[
+partitions[lAutomat[[i]]]= 
+Catenate@Catenate@(
+Partition[#,{4,4},{1,1}]&/@Keys@getClass[lAutomat[[i]],TrainingSample]
+)
+,{i,Length[lAutomat]}
+];
+Let's make it unique.
+In[54]:= Table[
+partitions[lAutomat[[i]]]=#[[1]]&/@Tally@partitions[lAutomat[[i]]]
+,{i,Length[lAutomat]}
+];
+In[55]:= (* firstM = lAutomat;
+SetSharedVariable[firstM]
+ *)
+ArrayPlot/@Table[
+With[
+{
+aut = lAutomat[[i]],
+set = getClass[lAutomat[[i]],TrainingSample],
+search = partitions[lAutomat[[i]]]
+},
+firstM[aut]=  MinimalBy[
+search,
+costM[#, set]&,1
+][[1]]
+]
+,{i,Length[lAutomat]}
+]
+Out[55]= {,,,,,,,,,,}
+Function to iterate the previous code.
+First, some helper functions.
+In[56]:= (*  Function that constructs an square matrix of matrices *)
+consTM[lm_]:=With[
+{nRows = Sqrt[Length[lm]]},
+With[
+{rows = Partition[lm,nRows]},
+Catenate[joinRow/@rows]
+]
+]
+
+joinRow[rs_]:= joinRow2[Rest[rs],rs[[1]],Length[rs]-1]
+
+joinRow2[rs_, acc_, n_]:= If[n==1,
+Join[acc,rs[[1]],2],
+joinRow2[Rest[rs],Join[acc,rs[[1]],2],n-1]
+]
+In[59]:= (* Given the list of current matrices, it generates a new matriz with a padding of zeros*)
+newMat[act_, ins_,nm_]:=
+With[
+{
+pad=ConstantArray[
+ConstantArray[0,Dimensions[ins]],nm-Length[act]-1]
+},
+consTM[
+Join[Append[act,ins],pad]
+]
+]
+Now, the training algorithm.
+In[60]:= (* Given and Initial matrix, adds the next matrix that minimizes the loss function *)
+In[61]:= trainNext[cs_,search_,set_]:=
+With[
+{nextM = MinimalBy[
+search,
+costM[newMat[cs,#,16],set]&,1
+][[1]]},
+Append[cs,nextM]
+]
+
+First, we need to set the recursion limit on all the kernels. 
+In[62]:= (* SetSharedVariable[lAutomat,TrainingSample]; 
+$SharedVariables *)
+In[63]:= mats =ParallelTable[
+With[
+{
+aut = lAutomat[[i]],
+set = getClass[lAutomat[[i]],TrainingSample],
+search = partitions[lAutomat[[i]]]
+},
+Nest[trainNext[#,search,set]&,{firstM[aut]},15]
+]
+,{i,Length[lAutomat]}];
+And the matrices chosen are (Lets put them in the model)
+In[64]:= ArrayPlot/@Table[Model[lAutomat[[i]]]=consTM[mats[[i]]],{i,Length@lAutomat}]
+Out[64]= {,,,,,,,,,,}
+In[65]:= pred[M_,x_]:=
+Quiet@MinimalBy[lAutomat, BDMC[x,M[#],4,1]&][[1]]
+In[66]:= right = 0;
+wrong = List[]
+Table[
+If[
+pred[
+Model, TestSample[[i]][[1]]
+]== TestSample[[i]][[2]],
+right = right +1,
+wrong=Append[wrong,TestSample[[i]]]
+]
+,{i,Length[TestSample]}];
+Out[67]= {}
+In[69]:= right
+Out[69]= 1349
+And the accuracy is:
+In[70]:= N@right/Length[TestSample]
+Out[70]= 0.981091
+Which is lower than the perfect 100%, but still decent I believe.
+In[71]:= Model[lAutomat[[1]]]
+Out[71]= {{0,1,0,1,0,0,1,1,1,1,1,0,1,0,0,1},{1,1,1,1,0,1,0,1,1,1,0,1,1,0,1,1},{0,1,1,0,1,1,1,0,1,0,1,0,0,1,0,1},{1,0,0,1,0,1,0,1,1,1,1,0,1,1,1,1},{1,0,1,1,1,1,1,0,1,1,0,1,0,1,0,1},{0,1,0,1,1,1,0,0,0,0,1,1,1,1,1,1},{1,1,1,0,1,0,0,1,0,1,0,1,1,1,1,1},{0,1,0,1,1,0,1,0,1,1,1,0,1,1,1,0},{1,1,1,0,0,1,0,0,0,1,0,1,0,1,0,1},{0,1,0,0,1,1,0,1,1,1,1,1,1,1,1,0},{1,1,0,1,0,0,1,1,1,1,1,0,1,1,0,1},{1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0},{1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1},{1,0,1,0,0,1,1,0,0,1,0,1,1,1,1,1},{0,1,1,0,1,0,0,1,1,1,1,0,0,1,1,0},{1,0,0,1,0,0,1,1,0,1,0,0,1,0,0,1}}
+Attacking the Model.
+In[72]:= expected2 = N@(Total@ParallelTable[
+Length@pixelAttack[pred[Model,#]&,TestSample[[i]]]
+,{i,5}]/5)
+Out[72]= 11.
+11 per sample is a significant number is much lower than 140.

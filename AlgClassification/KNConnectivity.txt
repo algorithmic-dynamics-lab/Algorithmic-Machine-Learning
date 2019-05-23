@@ -1,0 +1,381 @@
+Classifying NK Networks.
+An NK network is a boolean network where n specify the number of nodes or vertexes and k is the number of incoming connections that each vertex has. According to Kauffman, the parameter K defines the stability (or lack of thereof) of the network, where k = 2 is a critical point that approximates the properties of gene regulatory networks. Bellow that (k=1) we have too much regularity (frozen state) and beyond it (K>=3) we have chaos. 
+The Problem
+The classification problem to solve is, can we find out whenever the evolution of an NK network correspond to k=1 (frozen), k = 2 (criticality) and k=3 (chaos)?
+Legacy Functions
+In[1]:= toBinaryInt[n_,bits_]:=IntegerDigits[n,2,bits]
+The following code contains snips from and code inspired by https://demonstrations.wolfram.com/BooleanNKNetworks/
+In[2]:= ConnectivityMatrix[n_,k_]:=Table[RandomSample[Flatten[Prepend[Table[0,{n-k}],Table[1,{k}]]]],{n}]
+In[3]:= InitialStates[n_]:=RandomInteger[1,n]
+In[4]:= PositionsMatrix[conM_]:=Map[Flatten,Position[#,1]&/@conM];
+Rules
+The following functions randomly generates boolean rules of degree K.
+In[5]:= randomRule[k_]:=
+With[
+{
+outputs =RandomChoice[{0,1},2^k],
+inputs = Flatten[toBinaryInt[#,k]&/@Range[2^{k}],1]
+},
+AssociationThread[inputs-> outputs]
+]
+
+In[6]:= randomRule[3]
+Out[6]= <|{0,0,1}->1,{0,1,0}->1,{0,1,1}->0,{1,0,0}->1,{1,0,1}->0,{1,1,0}->1,{1,1,1}->0,{0,0,0}->1|>
+Function that generates a random NK network topology.
+In[7]:= randomNetwork[n_,k_]:=
+With[
+{
+rules = RandomChoice[
+randomRule[k]&/@Range[n]
+,n],
+connections = PositionsMatrix[ConnectivityMatrix[n,k]]
+},
+Association[
+{
+"Connections"->connections,
+"Rules"-> rules
+}
+]
+]
+For example:
+In[8]:= randomNetwork[10,2]
+Out[8]= <|Connections->{{3,4},{2,5},{1,7},{2,9},{6,9},{1,9},{3,6},{5,9},{8,9},{4,7}},Rules->{<|{0,1}->0,{1,0}->0,{1,1}->1,{0,0}->0|>,<|{0,1}->1,{1,0}->0,{1,1}->1,{0,0}->0|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->1|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->0|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->1|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->0|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->1|>,<|{0,1}->1,{1,0}->0,{1,1}->1,{0,0}->1|>,<|{0,1}->1,{1,0}->0,{1,1}->1,{0,0}->0|>,<|{0,1}->1,{1,0}->1,{1,1}->0,{0,0}->1|>}|>
+Given a network topology, the following function evolves a vector of n vectors.
+In[9]:= Remove[evolve]
+In[10]:= evolve[state_, topo_]:=
+Table[
+With[
+{
+inputs = (topo["Connections"])[[i]],
+trans = (topo["Rules"])[[i]]
+},
+trans[state[[inputs]]]
+]
+,{i,Length@state}]
+For example:
+In[11]:= net = randomNetwork[10,2];
+In[12]:= evolve[{1,0,0,1,0,1,0,1,0,1},net]
+Out[12]= {0,0,1,1,0,1,0,1,0,1}
+In[13]:= v = ConstantArray[0,10]
+Out[13]= {0,0,0,0,0,0,0,0,0,0}
+An evolution of the system for 10 steps is:
+In[14]:= NestList[evolve[#,net]&,v,10] 
+Out[14]= {{0,0,0,0,0,0,0,0,0,0},{1,0,1,1,1,0,0,0,0,0},{0,0,1,1,1,0,0,1,0,1},{1,0,1,1,0,0,0,0,0,1},{0,0,1,1,1,0,0,1,0,1},{1,0,1,1,0,0,0,0,0,1},{0,0,1,1,1,0,0,1,0,1},{1,0,1,1,0,0,0,0,0,1},{0,0,1,1,1,0,0,1,0,1},{1,0,1,1,0,0,0,0,0,1},{0,0,1,1,1,0,0,1,0,1}}
+The Data Sets
+The data sets consists of the evolution up time t=10 of 24 vertex nk-Boolean networks for each category of k=1,2,3.
+In[15]:= n= 24
+Out[15]= 24
+In[16]:= start = ConstantArray[0,n]
+Out[16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+According to Kaufman, k=2 represents a critical point, where the network becomes interesting. 
+Let's see how is the evolution of the network.
+In[17]:= size = 100;
+In[18]:= SeedRandom[02042019]
+s1 = evolve[start,randomNetwork[n,1]]&/@Range[size];
+s2 = evolve[start,randomNetwork[n,2]]&/@Range[size];
+s3 = evolve[start,randomNetwork[n,3]]&/@Range[size];
+s4 = evolve[start,randomNetwork[n,4]]&/@Range[size];
+Let's see if there's any BDM regularity.
+String BDM.
+In[23]:= SetDirectory[NotebookDirectory[]];
+In[24]:= D5 = <<"D5.m";
+Adding missing strings:
+In[25]:= D5=Flatten/@Append[D5,{{"000110100111",(5.21946101832149`*^-12)}}];
+D5=Flatten/@Append[D5,{{"111001011000",(5.21946101832149`*^-12)}}];
+In[27]:= Table[HashStrings[D5[[i,1]]] = -Log[2,D5[[i,2]]],{i,Length@D5}];
+In[28]:= StringBDM[string_,len_:1]:= 
+N@Total[HashStrings[#[[1]]]+Log[2,#[[2]]]&/@Tally[If[TrueQ[StringLength[string]>12],StringPartition[string,12,len],{string}]]]
+Modified version of String Entropy to be able to setup partition sizes.
+In[29]:= StringBDMS[string_,len_:1, dis_:1]:= 
+N@Total[HashStrings[#[[1]]]+Log[2,#[[2]]]&/@Tally[
+StringPartition[string,len,dis]]
+]
+In[30]:= BinaryBDM[input_,len_:1]:=
+With[
+{str = StringJoin[ToString/@input]},
+StringBDM[str,len]
+]
+The Sets:
+We will include the evolution of a network up to 10 times.
+In[36]:= flattenEvo[ str_,net_,t_]:= Flatten@Rest@NestList[evolve[#,net]&,str,t] 
+In[37]:= net = randomNetwork[24,2];
+In[38]:= BinaryBDM@RandomChoice[{0,1},n*10]
+Out[38]= 7093.27
+Let's see the expected values for these sets.
+In[39]:= SeedRandom[02042019]
+s1 = flattenEvo[start,randomNetwork[n,1],10]&/@Range[size];
+s2 = flattenEvo[start,randomNetwork[n,2],10]&/@Range[size];
+s3 = flattenEvo[start,randomNetwork[n,3],10]&/@Range[size];
+s4 = flattenEvo[start,randomNetwork[n,4],10]&/@Range[size];
+In[44]:= Mean[BinaryBDM/@s1]
+Out[44]= 2541.57
+In[45]:= Mean[BinaryBDM/@s2]
+Out[45]= 5018.44
+In[46]:= Mean[BinaryBDM/@s3]
+Out[46]= 6625.2
+In[47]:= Mean[BinaryBDM/@s4]
+Out[47]= 7191.18
+Looks like we will be able to separate sets according to the BDM!
+The Sets
+In[48]:= classes = {1,2,3}
+Out[48]= {1,2,3}
+In[49]:= size = 100;
+SeedRandom[02042019]
+TrainingSample =
+ Flatten@Table[
+Table[
+flattenEvo[
+start,
+randomNetwork[n,classes[[j]]],
+10]->classes[[j]]
+,{i,size}]
+,{j,Length@classes}];
+
+ValidationSample =
+ Flatten@Table[
+Table[
+ flattenEvo[
+start,
+randomNetwork[n,classes[[j]]],
+10]->classes[[j]]
+,{i,size}]
+,{j,Length@classes}];
+
+TestSample =
+ Flatten@Table[
+Table[
+ flattenEvo[
+start,
+randomNetwork[n,classes[[j]]],
+10]->classes[[j]]
+,{i,size}]
+,{j,Length@classes}];
+The data has the form:
+In[54]:= TrainingSample[[1]]
+Out[54]= {0,0,0,1,1,0,1,1,1,1,0,1,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,1,0,1,1,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,1,0,1,1,1,1,0,0,1,1,0,0,0,0,0,1,0,1,0,0}->1
+In[102]:= Length@TrainingSample[[1,1]]
+Out[102]= 240
+Where the object to classify is the evolution to 10 steps of the Boolean network while the class if the $K$ parameter that was used to generate the network.  
+Solving the Classification Problem With Neural Networks.
+Lets see if a neural network can solve classify the previous set.
+In[55]:= nn = NetChain[
+{ 
+LinearLayer[n*10],Ramp,DropoutLayer[],
+LinearLayer[],Ramp,SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",classes}],"Input"-> {n*10}
+]
+Out[55]= NetChain[Input port:	vector ( size: 240 )
+Output port:	class
+Number of layers:	6
+
+]
+In[56]:= SeedRandom[02042019]
+net = NetTrain[nn,
+TrainingSample, 
+ValidationSet->ValidationSample,
+TargetDevice->{"GPU",2}]
+Out[57]= NetChain[Input port:	vector ( size: 240 )
+Output port:	class
+Number of layers:	6
+
+]
+In[58]:= ClassifierMeasurements[net, TestSample, "Accuracy"]
+Out[58]= 0.426667
+In[117]:= ClassifierMeasurements[net, TrainingSample, "Accuracy"]
+Out[117]= 1.
+In[103]:= nn2 = NetChain[
+{ 
+LinearLayer[n*10],Ramp,DropoutLayer[],
+LinearLayer[],SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",classes}],"Input"-> {n*10}
+]
+Out[103]= NetChain[Input port:	vector ( size: 240 )
+Output port:	class
+Number of layers:	5
+
+]
+In[104]:= SeedRandom[02042019]
+net2 = NetTrain[nn2,
+TrainingSample, 
+ValidationSet->ValidationSample,
+TargetDevice->{"GPU",2}]
+Out[105]= NetChain[Input port:	vector ( size: 240 )
+Output port:	class
+Number of layers:	5
+
+]
+In[107]:= ClassifierMeasurements[net2, TestSample, "Accuracy"]
+Out[107]= 0.43
+As expected, the NN is not good at classifying this problem, and the network has enough variance to perfectly fit the set.
+In[59]:= ClassifierMeasurements[net, TrainingSample, "Accuracy"]
+Out[59]= 1.
+In[108]:= ClassifierMeasurements[net2, TestSample , "ConfusionMatrixPlot"]
+Out[108]= 
+Looks like most incorrect classifications are assigned to the k=1 class.
+Lets see if Mathematica can find a good classifier.
+In[61]:= mClass = Classify[TrainingSample]
+Out[61]= ClassifierFunction[Input type: BooleanVector (length: 240)
+Classes: 1,2,3
+Method: GradientBoostedTrees
+Number of training examples: 300
+
+]
+In[62]:= ClassifierMeasurements[mClass, TestSample, "Accuracy"]
+Out[62]= 0.35
+In[115]:= ClassifierMeasurements[mClass, TrainingSample, "Accuracy"]
+Out[115]= 0.643333
+Using GradientBoostedTrees performed worse, nearly as bad as random classification.
+An Attempt of Using a Prior Information of the Problem.
+By construction, we know that the starting strings are of size 24, so how can we use that information to define a better topology for the Neural Network? The one solution that comes to mind is to use convolutional layers of size {24,10} with
+In[63]:= TrainingSample2 = ({#[[1]]}->#[[2]])&/@TrainingSample;
+ValidationSample2 = ({#[[1]]}->#[[2]])&/@ValidationSample;
+TestSample2 = ({#[[1]]}->#[[2]])&/@TestSample;
+In[109]:= nn3 =  NetChain[{ ConvolutionLayer[10,{24}],Ramp, (* DropoutLayer[], *)
+PoolingLayer[{24}, "Function"->Mean],FlattenLayer[], 
+LinearLayer[Length@classes],SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",classes}],"Input"-> {1,n*10}];
+In[110]:= SeedRandom[02042019]
+net3 = NetTrain[nn3,TrainingSample2, ValidationSet->ValidationSample2, TargetDevice->{"GPU",2}]
+Out[111]= NetChain[Dynamic Content]
+In[113]:= ClassifierMeasurements[net3, TestSample2, "Accuracy"]
+Out[113]= 0.316667
+At the least we managed to somewhat control overfitting:
+In[114]:= ClassifierMeasurements[net3, TrainingSample2, "Accuracy"]
+Out[114]= 0.976667
+Predictably, that approach didn't work.
+Algorithmic Classification
+Let's classify purely by using the BDM of the samples.
+In[71]:= BDMTrainingSample = (BinaryBDM[#[[1]]]->#[[2]])&/@TrainingSample;
+BDMTestSample = (BinaryBDM[#[[1]]]->#[[2]])&/@TestSample;
+In[73]:= bdmClass = Classify[BDMTrainingSample, Method->"NearestNeighbors"]
+Out[73]= ClassifierFunction[Input type: Numerical
+Classes: 1,2,3
+Method: NearestNeighbors
+Number of training examples: 300
+
+]
+Let us see the accuracy of this classifier:
+In[74]:= ClassifierMeasurements[bdmClass , BDMTestSample , "Accuracy"]
+Out[74]= 0.7
+70% by means of nearest neighbors based on its BDM value is much better than 46%. But, can we do better?
+Let's see the confusion Matrix:
+In[75]:= ClassifierMeasurements[bdmClass , BDMTestSample , "ConfusionMatrixPlot"]
+Out[75]= 
+The class 2, aka the rich one, is the hardest to classify. And most erroneous predictions went to the k=3 case. However, unlike the tested traditional methods, 
+In[116]:= ClassifierMeasurements[bdmClass , BDMTrainingSample , "Accuracy"]
+Out[116]= 0.71
+Boosting the classifier by using both data points.
+Let's combine the data points.
+In[76]:= combTrainingSample = (Catenate[{#[[1]],{BinaryBDM[#[[1]]]}}]->#[[2]])&/@TrainingSample;
+combValidationSample = (Catenate[{#[[1]],{BinaryBDM[#[[1]]]}}]->#[[2]])&/@ValidationSample;
+combTestSample = (Catenate[{#[[1]],{BinaryBDM[#[[1]]]}}]->#[[2]])&/@TestSample;
+In[79]:= combClass = Classify[combTrainingSample ]
+Out[79]= ClassifierFunction[Input type: Mixed (number: 241)
+Classes: 1,2,3
+
+]
+In[80]:= ClassifierMeasurements[combClass , combTestSample, "Accuracy"]
+Out[80]= 0.696667
+70%, the small difference is not significant.
+Let's try a simple Neural Network.
+In[81]:= nn2 = NetChain[
+{ 
+LinearLayer[n*10+1],Ramp,DropoutLayer[],
+LinearLayer[],Ramp,SoftmaxLayer[]},
+"Output"->NetDecoder[{"Class",{1,2,3}}],"Input"-> {n*10+1}
+]
+Out[81]= NetChain[Input port:	vector ( size: 241 )
+Output port:	class
+Number of layers:	6
+
+]
+In[82]:= SeedRandom[02042019]
+net2 = NetTrain[nn2,combTrainingSample, ValidationSet->combValidationSample]
+Out[83]= NetChain[Input port:	vector ( size: 241 )
+Output port:	class
+Number of layers:	6
+
+]
+Out[83]= NetChain[Input port:	vector ( size: 241 )
+Output port:	class
+Number of layers:	6
+
+]
+In[84]:= ClassifierMeasurements[net2, combTestSample, "Accuracy"]
+Out[84]= 0.326667
+Performance dropped significantly to random classification. I did not expected this result. But help us to show that the used topology has no real way to discern on the useful information for the classification.
+In[85]:= ClassifierMeasurements[net2, combTrainingSample, "Accuracy"]
+Out[85]= 0.326667
+The Model
+The first task is to define the proper model. For this problem, a class is an integer that defines the number of interactions between the nodes of the networks. Follows that a class is composed of all possible interactions of degree k.
+In other words, the model is composed of the sets of adjacency matrices of the interactions between the vertices of the network corresponding to the evolution of the model and the . This is of course a really big set. But the complexity of these matrices, 
+The main challenge we have with algorithmic classification is that NW networks is that mutations aren't local, therefore we can expect that the the block partition approach used by the Cellular automaton case will yield worse results. Also, doing conditional algorithmic complexity over 2^24 strings in order to get over the block size limitation (for this case) is too costly. 
+Now, from the previous experiment, is clear that BDM works on some capacity, but that is with the universal distribution. I'm not confident that algorithmic  classification restricted to the set of rules will work nearly as well.
+As consequence of the previous points, we have that classification by BDM weights is an instance of algorithmic classification given the following:
+The real centers are the sets of all possible algorithmic relations, including the adjacency matrix and related binary operations, related to k=3. Therefore, the expected complexity of specifying a member of each class increases in function of this value (k). 
+For instance, the number of possible boolean operations of degree k is 2^(2^k) and the number of possible adjacency matrices is n\times Comb(n,k) (for row of each matrix, we must choose k incoming edges out of n possible nodes) . Follows that the total number of possible network topologies is n^2 \times 2^(2^k) \times  Comb(n,k)  and the expected number of bits required to specify a member of this set is Log(n^2 \times 2^(2^k) \times  Comb(n,k)).
+Therefore, the expected algorithmic complexity of the members of  each class increases with k and n and we can do a coarse algorithmic classification instance according to this idea.
+In[86]:= model = AssociationMap[0&, classes]
+Out[86]= <|1->0,2->0,3->0|>
+Training the model:
+In[87]:= ChooseDat[data_, dig_]:=Select[data, (#[[2]]==dig)&]
+In[88]:= Mean@Keys@ChooseDat[BDMTestSample,1]
+Out[88]= 2671.46
+In[89]:= Table[
+With[
+{cls=classes[[i]]}
+,model[cls]= Mean@Keys@ChooseDat[BDMTestSample,cls]
+]
+,{i,Length@classes}
+]
+Out[89]= {2671.46,4937.35,6837.64}
+And we classify a sample with respect to which BDM is the closest to it.
+In[90]:= Remove[pred]
+In[91]:= pred[m_,x_]:= MinimalBy[Keys@m, Abs[m[#]-x]&][[1]]
+In[92]:= right = 0;
+wrong = List[]
+Table[
+If[
+pred[
+model, BDMTestSample[[i]][[1]]
+]== BDMTestSample[[i]][[2]],
+right = right +1,
+wrong=Append[wrong,BDMTestSample[[i]]]
+]
+,{i,Length[BDMTestSample]}];
+Out[93]= {}
+And the accuracy is:
+In[95]:= N@right/Length[BDMTestSample]
+Out[95]= 0.713333
+On the test set.
+In[122]:= right = 0;
+wrong2 = List[]
+Table[
+If[
+pred[
+model, BDMTrainingSample[[i]][[1]]
+]== BDMTrainingSample[[i]][[2]],
+right = right +1,
+wrong2=Append[wrong2,BDMTrainingSample[[i]]]
+]
+,{i,Length[BDMTrainingSample]}];
+Out[123]= {}
+In[125]:= N@right/Length[BDMTrainingSample]
+Out[125]= 0.7
+71 % for which is almost the same as nearest neighbors!
+Entropy-based Classification
+For completeness sake, we will try to see how entropy-based algorithmic information measure does in this classification task.
+In[97]:= EntropyTrainingSample = (Entropy[#[[1]]]->#[[2]])&/@TrainingSample;
+EntropyTestSample = (Entropy[#[[1]]]->#[[2]])&/@TestSample;
+In[99]:= entClass = Classify[EntropyTrainingSample ]
+Out[99]= ClassifierFunction[Input type: Numerical
+Classes: 1,2,3
+Method: GradientBoostedTrees
+Number of training examples: 300
+
+]
+In[100]:= ClassifierMeasurements[entClass, EntropyTestSample , "Accuracy"]
+Out[100]= 0.376667
+Barely above random choice.
+In[118]:= ClassifierMeasurements[entClass, EntropyTrainingSample , "Accuracy"]
+Out[118]= 0.463333

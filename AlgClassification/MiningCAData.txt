@@ -1,0 +1,45 @@
+Mining Data
+In[70]:= SetDirectory[NotebookDirectory[]];
+List of all 8-bit strings and their outputs.
+In[71]:= toBinaryInt[n_,bits_]:=IntegerDigits[n,2,bits]
+In[72]:= set = IntegerDigits[#,2,12]&/@Range[2^12];
+In[4]:= Length@set
+Out[4]= 4096
+In[73]:= in =RandomChoice@set
+Out[73]= {1,1,1,1,1,1,1,0,1,1,1,1}
+In[74]:= x =CellularAutomaton[110,in,4]
+Out[74]= {{1,1,1,1,1,1,1,0,1,1,1,1},{0,0,0,0,0,0,1,1,1,0,0,0},{0,0,0,0,0,1,1,0,1,0,0,0},{0,0,0,0,1,1,1,1,1,0,0,0},{0,0,0,1,1,0,0,0,1,0,0,0}}
+Given an automaton of the form S1->S2, returns the associations of probabilities. 
+In[7]:= relations [aut_, sz_, ds_]:=Merge[#,Total]&@With[
+{
+part1 = Partition[First@aut,sz,ds],
+part2 = Flatten[Partition[Rest@aut,{4,sz},ds],1]
+},
+Table[
+{part1[[i]][[5;;10]],(#[[5;;10]])&/@part2[[i]]}->1
+,{i,Length@part1}
+]
+]
+In[8]:= relations[x,12,12]
+Out[8]= <|{{0,1,1,1,1,1},{{1,1,0,0,0,0},{1,1,0,0,0,1},{0,1,0,0,1,1},{1,1,0,1,1,0}}}->1|>
+Catenates a list of associations by adding the values.  
+In[9]:= dataP = 
+Table[
+Table[
+(relations[#,12,12])&@CellularAutomaton[aut,set[[str]],4]
+,{str,Length@set}
+]
+,{aut,0,128}
+];
+Just to try.
+In[10]:= dataB = Merge[#,Total]&@dataP
+Out[10]= <|{{0,0,0,0,0,0},{{0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0}}}->1232,{{0,0,0,0,0,1},{{0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0},{0,0,0,0,0,0}}}->608, ⋯90530⋯ ,{{1,1,1,1,1,1},{{1,1,1,1,1,1},{1,1,1,1,1,0},{1,1,1,1,0,0},{1,1,1,0,0,0}}}->1,{{1,1,1,1,1,1},{{1,1,1,1,1,1},{1,1,1,1,1,1},{1,1,1,1,1,1},{1,1,1,1,1,1}}}->1|>
+large output	show less	show more	show all	set size limit...
+
+
+In[16]:= Export["dataB6-4v2.m",dataB]
+Out[16]= dataB6-4v2.m
+In[13]:= "dataB6-4v2.m"
+Out[13]= dataB6-4v2.m
+In[14]:= Length@dataB
+Out[14]= 90534
