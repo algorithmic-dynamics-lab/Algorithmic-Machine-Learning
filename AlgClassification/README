@@ -1,0 +1,6 @@
+This Directory contains the following Mathematica Worksheets:
+
+ - ECAClassification.nb: Algorithmic and NN classification of Elemental Cellular Automatons according to its evolution.
+ - ECAInitialization.nb: Algorithmic and NN classification of Elemental Cellular Automatons according to its initial state.
+ - KNConnectivity.nb: Algorithmic and NN classification of NK networks according to k.
+ - KNTopologyAndRules.nb: Algorithmic and NN classification of NK networks according to its topology and underlying set of rules.
